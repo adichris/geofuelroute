@@ -96,11 +96,6 @@ Endpoint: <code>[/api/](http://127.0.0.1:8000/api/) </code>
 ```
 **Response**
 ```json
-TTP 200 OK
-Allow: GET, POST, HEAD, OPTIONS
-Content-Type: application/json
-Vary: Accept
-
 {
     "total_distance_miles": 227.51,
     "total_fuel_required_gallons": 22.75,
@@ -121,7 +116,8 @@ Vary: Accept
         "coordinates": [
             [ ... ],
             [ ... ],
-            ...]
+            ]
+    }
 ```
 
 ### Testing

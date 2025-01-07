@@ -5,11 +5,14 @@ import openrouteservice
 from .models import FuelStation
 from .serializers import DestinationSerializer
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class CalculateRouteView(APIView):
     serializer_class = DestinationSerializer
-
+  
     def get(self, request):
         """
         GET method provides a description of the API and how to use it.
@@ -40,6 +43,7 @@ class CalculateRouteView(APIView):
                 }
             }
         }, status=status.HTTP_200_OK)
+
 
     def post(self, request):
         # Validate input using serializer
