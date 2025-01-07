@@ -28,7 +28,7 @@ This is a Django-based API that calculates the optimal route and fuel costs betw
 
 ### **1. Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/route-fuel-cost-api.git
+git clone [https://github.com/adichris/geofuelroute.git](https://github.com/adichris/geofuelroute.git)
 cd route-fuel-cost-api
 ```
 
