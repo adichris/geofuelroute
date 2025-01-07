@@ -18,7 +18,7 @@ class CalculateRouteView(APIView):
             "message": "This route calculate Fuel Cost for a destination",
             "usage": {
                 "method": "POST",
-                "endpoint": "/api/calculate-route/",
+                "endpoint": "/api/",
                 "parameters": {
                     "start_lat": "Latitude of the starting point (float)",
                     "start_lng": "Longitude of the starting point (float)",
