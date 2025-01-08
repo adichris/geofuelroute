@@ -93,7 +93,7 @@ class CalculateRouteView(APIView):
             city = waypoint.get("name").lower() if waypoint.get("name") else None
             state = waypoint.get("state").lower() if waypoint.get("state") else None
             for station_ in all_stations:
-                ratio = fuzz.partial_ratio(station_.truckstop_name.lower(), city)
+                ratio = fuzz.partial_ratio(station_.city.lower(), city)
                 if ratio > 80:
                     match_stations.append(station_)
             if len(match_stations) >= 1:
