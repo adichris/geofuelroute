@@ -7,6 +7,7 @@ from .serializers import DestinationSerializer
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from rapidfuzz import fuzz
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -44,7 +45,6 @@ class CalculateRouteView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
-
     def post(self, request):
         # Validate input using serializer
         serializer = DestinationSerializer(data=request.data)
@@ -81,36 +81,56 @@ class CalculateRouteView(APIView):
         # Calculate total fuel required
         total_fuel_required = total_distance_miles / fuel_efficiency
 
-        # Calculate required fuel stops
-        fuel_stops = int(total_distance_miles // tank_range)
+        # Waypoints for route (city and state information)
+        waypoints = route["features"][0]["properties"]["segments"][0]["steps"]
+        fuel_stations = set()
+        fuel_stops = [] 
 
-        # Query fuel stations along the route (example assumes all stations are valid)
-        fuel_stations = FuelStation.objects.order_by('retail_price')[:fuel_stops + 1]
+        all_stations = FuelStation.objects.order_by("retail_price")
+        match_stations = []
 
-        # Calculate fuel costs and stops
-        total_cost = 0
-        stops = []
-        for i, station in enumerate(fuel_stations):
-            gallons_needed = fuel_capacity if i < fuel_stops else total_fuel_required % fuel_capacity
-            cost = float(gallons_needed) * float(station.retail_price)
-            total_cost += cost
-            stops.append({
-                "opis_trucking_id": station.opis_trucking_id,
-                "truckstop_name": station.truckstop_name,
-                "address":station.address,
-                "city": station.city,
-                "state": station.state,
-                "price_per_gallon": station.retail_price,
-                "gallons_needed": round(gallons_needed, 2),
-                "cost": round(cost, 2)
-            })
+        for waypoint in waypoints:
+            city = waypoint.get("name").lower() if waypoint.get("name") else None
+            state = waypoint.get("state").lower() if waypoint.get("state") else None
+            for station_ in all_stations:
+                ratio = fuzz.partial_ratio(station_.truckstop_name.lower(), city)
+                if ratio > 80:
+                    match_stations.append(station_)
+            if len(match_stations) >= 1:
+                # query stations
+                
+                for station in match_stations:
+                    if station.truckstop_name not in fuel_stations:
+                        fuel_stations.add(station.truckstop_name)
+                        gallons_needed = min(fuel_capacity, total_fuel_required)
+                        cost = gallons_needed * float(station.retail_price)
+
+                        fuel_stops.append({
+                            "truckstop_name": station.truckstop_name,
+                            "city": station.city,
+                            "state": station.state,
+                            "retail_price": station.retail_price,
+                            "gallons_needed": round(gallons_needed, 2),
+                            "cost": round(cost, 2),
+                            "rack_id": station.rack_id,
+                        })
+
+                        # reduce the remaining fuel requirement
+                        total_fuel_required -= gallons_needed
+
+                        # end loop when fuel requirement is met
+                        if total_fuel_required <= 0:
+                            break
+            if total_fuel_required <= 0: break
+
+        total_cost = sum(stop["cost"] for stop in fuel_stops)
 
         # Response
         response = {
             "total_distance_miles": round(total_distance_miles, 2),
-            "total_fuel_required_gallons": round(total_fuel_required, 2),
+            "total_fuel_required_gallons": round(total_distance_miles / fuel_efficiency, 2),
             "total_cost": round(total_cost, 2),
-            "stops": stops,
+            "stops": fuel_stops,
             "route_geometry": route["features"][0]["geometry"]
         }
 
